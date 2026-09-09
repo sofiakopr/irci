@@ -1,0 +1,222 @@
+.section ".data"
+
+snake:
+    .word 1000
+    .word 999
+    .word 998
+    .word 997
+
+
+.section ".text"
+
+inicio:
+
+    // ================================================
+    // UART
+    // ================================================
+
+    // $s0 = 0xFFFFFF00
+    addi $s0, $zero, -0x100
+
+
+    // ================================================
+    // Dirección de snake
+    // ================================================
+
+    orh  $s1, $zero, .hi16 snake
+    ori  $s1, $s1, .lo16 snake
+
+
+    // ================================================
+    // DIBUJAR TABLERO INICIAL
+    // ================================================
+
+    addi $s2, $zero, 0       // posición actual
+    addi $s3, $zero, 25      // filas
+
+
+fila_inicial:
+
+    addi $s4, $zero, 80      // columnas
+
+
+columna_inicial:
+
+    // Puntero al primer segmento
+    addi $s5, $s1, 0
+
+    // 4 segmentos
+    addi $s6, $zero, 4
+
+
+buscar_inicial:
+
+    lw $s7, 0($s5)
+
+    beq $s7, $s2, dibujar_O_inicial
+
+    addi $s5, $s5, 4
+    addi $s6, $s6, -1
+
+    bne $s6, $zero, buscar_inicial
+
+
+    // No hay serpiente aquí
+    addi $s7, $zero, ' '
+    sb $s7, 0($s0)
+
+    j siguiente_inicial
+
+
+dibujar_O_inicial:
+
+    addi $s7, $zero, 'O'
+    sb $s7, 0($s0)
+
+
+siguiente_inicial:
+
+    addi $s2, $s2, 1
+    addi $s4, $s4, -1
+
+    bne $s4, $zero, columna_inicial
+
+
+    // Fin de fila
+    addi $s7, $zero, '\r'
+    sb $s7, 0($s0)
+
+    addi $s7, $zero, '\n'
+    sb $s7, 0($s0)
+
+    addi $s3, $s3, -1
+
+    bne $s3, $zero, fila_inicial
+
+
+    // ================================================
+    // ESPERAR TECLADO
+    // ================================================
+
+esperar_tecla:
+
+    // Leer STATUS
+    lbu $s2, 4($s0)
+
+    // RX_READY = bit 0
+    ani $s3, $s2, 1
+
+    // Si no hay tecla, seguir esperando
+    beq $s3, $zero, esperar_tecla
+
+
+    // Leer tecla
+    lbu $s2, 0($s0)
+
+
+    // ¿Es 'd'?
+    addi $s3, $zero, 'd'
+
+    bne $s2, $s3, esperar_tecla
+
+
+    // ================================================
+    // MOVER SERPIENTE A LA DERECHA
+    // ================================================
+
+    // Recuperar dirección de snake
+    // $s1 sigue apuntando al primer elemento
+
+
+    // snake[3] = snake[2]
+    lw $s5, 8($s1)
+    sw $s5, 12($s1)
+
+
+    // snake[2] = snake[1]
+    lw $s5, 4($s1)
+    sw $s5, 8($s1)
+
+
+    // snake[1] = snake[0]
+    lw $s5, 0($s1)
+    sw $s5, 4($s1)
+
+
+    // PRUEBA: mover la cabeza +80
+    lw $s5, 0($s1)
+
+    addi $s5, $s5, 80
+
+    sw $s5, 0($s1)
+
+
+    // ================================================
+    // DIBUJAR NUEVO TABLERO
+    // ================================================
+
+    addi $s2, $zero, 0       // posición actual
+    addi $s3, $zero, 25      // filas
+
+
+fila_movida:
+
+    addi $s4, $zero, 80      // columnas
+
+
+columna_movida:
+
+    // Puntero al primer segmento
+    addi $s5, $s1, 0
+
+    // 4 segmentos
+    addi $s6, $zero, 4
+
+
+buscar_movida:
+
+    lw $s7, 0($s5)
+
+    beq $s7, $s2, dibujar_O_movida
+
+    addi $s5, $s5, 4
+    addi $s6, $s6, -1
+
+    bne $s6, $zero, buscar_movida
+
+
+    // No hay serpiente
+    addi $s7, $zero, ' '
+    sb $s7, 0($s0)
+
+    j siguiente_movida
+
+
+dibujar_O_movida:
+
+    addi $s7, $zero, 'O'
+    sb $s7, 0($s0)
+
+
+siguiente_movida:
+
+    addi $s2, $s2, 1
+    addi $s4, $s4, -1
+
+    bne $s4, $zero, columna_movida
+
+
+    // Fin de fila
+    addi $s7, $zero, '\r'
+    sb $s7, 0($s0)
+
+    addi $s7, $zero, '\n'
+    sb $s7, 0($s0)
+
+    addi $s3, $s3, -1
+
+    bne $s3, $zero, fila_movida
+
+
+    // Volver a esperar otra 'd'
+    j esperar_tecla
