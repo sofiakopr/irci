@@ -1,0 +1,313 @@
+.section ".data"
+
+msg_ok:       .asciiz "TODOS LOS TESTS OK\r\n"
+msg_arit:     .asciiz "ARITMETICA OK\r\n"
+msg_log:      .asciiz "LOGICA OK\r\n"
+msg_mem:      .asciiz "MEMORIA OK\r\n"
+msg_branch:   .asciiz "SALTOS OK\r\n"
+msg_fail:     .asciiz "TEST FALLIDO\r\n"
+
+dato_word:    .word 0x12345678
+dato_half:    .short 0x5678
+dato_byte:    .byte 0x42
+
+
+.section ".text"
+
+// ---------------------------------------------------------
+// Inicializacion
+// ---------------------------------------------------------
+
+addi $sp, $zero, 0xFFC
+
+
+// =========================================================
+// TEST 1: ARITMETICA
+// =========================================================
+
+addi $t0, $zero, 10
+addi $t1, $zero, 5
+
+// ADD: 10 + 5 = 15
+add $t2, $t0, $t1
+addi $t3, $zero, 15
+bne $t2, $t3, fallo
+
+// SUB: 10 - 5 = 5
+sub $t2, $t0, $t1
+bne $t2, $t1, fallo
+
+// MUL: 10 * 5 = 50
+mul $t2, $t0, $t1
+addi $t3, $zero, 50
+bne $t2, $t3, fallo
+
+// SLT: 5 < 10
+slt $t2, $t1, $t0
+addi $t3, $zero, 1
+bne $t2, $t3, fallo
+
+// SLTU: 5 < 10
+sltu $t2, $t1, $t0
+bne $t2, $t3, fallo
+
+
+// ---------------------------------------------------------
+// ARITMETICA OK
+// ---------------------------------------------------------
+
+orh $a0, $zero, .hi16 msg_arit
+ori $a0, $a0, .lo16 msg_arit
+jal imprimir_asciiz
+
+
+// =========================================================
+// TEST 2: LOGICA
+// =========================================================
+
+addi $t0, $zero, 0x0F
+addi $t1, $zero, 0x03
+
+// AND
+and $t2, $t0, $t1
+addi $t3, $zero, 0x03
+bne $t2, $t3, fallo
+
+// OR
+or $t2, $t0, $t1
+addi $t3, $zero, 0x0F
+bne $t2, $t3, fallo
+
+// XOR
+xor $t2, $t0, $t1
+addi $t3, $zero, 0x0C
+bne $t2, $t3, fallo
+
+// NOR
+or $t2, $t0, $t1
+nor $t2, $t2, $zero
+beq $t2, $zero, fallo
+
+
+// ---------------------------------------------------------
+// LOGICA OK
+// ---------------------------------------------------------
+
+orh $a0, $zero, .hi16 msg_log
+ori $a0, $a0, .lo16 msg_log
+jal imprimir_asciiz
+
+
+// =========================================================
+// TEST 3: MEMORIA
+// =========================================================
+
+// ---------------------------------------------------------
+// LW / SW
+// ---------------------------------------------------------
+
+orh $t0, $zero, .hi16 dato_word
+ori $t0, $t0, .lo16 dato_word
+
+lw $t1, 0($t0)
+
+// 0x12345678
+orh $t2, $zero, 0x1234
+ori $t2, $t2, 0x5678
+
+bne $t1, $t2, fallo
+
+// SW
+addi $t3, $zero, 99
+sw $t3, 0($t0)
+
+// LW
+lw $t4, 0($t0)
+bne $t4, $t3, fallo
+
+
+// ---------------------------------------------------------
+// LBU
+// ---------------------------------------------------------
+
+orh $t0, $zero, .hi16 dato_byte
+ori $t0, $t0, .lo16 dato_byte
+
+lbu $t1, 0($t0)
+
+addi $t2, $zero, 0x42
+bne $t1, $t2, fallo
+
+
+// ---------------------------------------------------------
+// LHU
+// ---------------------------------------------------------
+
+orh $t0, $zero, .hi16 dato_half
+ori $t0, $t0, .lo16 dato_half
+
+lhu $t1, 0($t0)
+
+orh $t2, $zero, 0x0000
+ori $t2, $t2, 0x5678
+
+bne $t1, $t2, fallo
+
+
+// ---------------------------------------------------------
+// MEMORIA OK
+// ---------------------------------------------------------
+
+orh $a0, $zero, .hi16 msg_mem
+ori $a0, $a0, .lo16 msg_mem
+jal imprimir_asciiz
+
+
+// =========================================================
+// TEST 4: SALTOS CONDICIONALES
+// =========================================================
+
+addi $t0, $zero, 10
+addi $t1, $zero, 10
+
+// BEQ
+beq $t0, $t1, beq_ok
+
+j fallo
+
+beq_ok:
+
+// BNE
+addi $t1, $zero, 20
+bne $t0, $t1, bne_ok
+
+j fallo
+
+bne_ok:
+
+// BLT
+blt $t0, $t1, blt_ok
+
+j fallo
+
+blt_ok:
+
+// BGE
+bge $t1, $t0, bge_ok
+
+j fallo
+
+bge_ok:
+
+
+// ---------------------------------------------------------
+// SALTOS OK
+// ---------------------------------------------------------
+
+orh $a0, $zero, .hi16 msg_branch
+ori $a0, $a0, .lo16 msg_branch
+jal imprimir_asciiz
+
+
+// =========================================================
+// TEST 5: JAL / JR
+// =========================================================
+
+addi $t0, $zero, 0
+
+jal poner_123
+
+addi $t1, $zero, 123
+bne $t0, $t1, fallo
+
+
+// =========================================================
+// TODOS LOS TESTS OK
+// =========================================================
+
+orh $a0, $zero, .hi16 msg_ok
+ori $a0, $a0, .lo16 msg_ok
+jal imprimir_asciiz
+
+
+// No caer en las funciones.
+// El programa termina acá.
+fin:
+j fin
+
+
+// =========================================================
+// FUNCION: poner_123
+// =========================================================
+
+poner_123:
+
+addi $t0, $zero, 123
+
+jr $ra, 0
+
+
+// =========================================================
+// FUNCION: imprimir_asciiz
+//
+// $a0 = puntero a string terminada en 0
+// UART = 0xFFFFFF00
+// =========================================================
+
+imprimir_asciiz:
+
+addi $sp, $sp, -12
+
+sw $s0, 0($sp)
+sw $s1, 4($sp)
+sw $s2, 8($sp)
+
+addi $s0, $a0, 0
+
+// UART = 0xFFFFFF00
+addi $s2, $zero, -0x100
+
+
+imprimir_loop:
+
+lbu $s1, 0($s0)
+
+beq $s1, $zero, imprimir_fin
+
+sb $s1, 0($s2)
+
+addi $s0, $s0, 1
+
+j imprimir_loop
+
+
+imprimir_fin:
+
+// CR
+addi $s1, $zero, 13
+sb $s1, 0($s2)
+
+// LF
+addi $s1, $zero, 10
+sb $s1, 0($s2)
+
+lw $s0, 0($sp)
+lw $s1, 4($sp)
+lw $s2, 8($sp)
+
+addi $sp, $sp, 12
+
+jr $ra, 0
+
+
+// =========================================================
+// ERROR
+// =========================================================
+
+fallo:
+
+orh $a0, $zero, .hi16 msg_fail
+ori $a0, $a0, .lo16 msg_fail
+jal imprimir_asciiz
+
+trap 1
